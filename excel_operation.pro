@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui axcontainer
 CONFIG += qaxcontainer
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -19,3 +19,9 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui
+
+CONFIG(debug, debug|release): DESTDIR +=  $$PWD/../bin/debug/win32
+CONFIG(release, debug|release): DESTDIR +=  $$PWD/../bin/release/win32
+
+        CONFIG(release, debug|release): LIBS +=  -lPsapi
+        CONFIG(debug, debug|release): LIBS +=  -lPsapi
