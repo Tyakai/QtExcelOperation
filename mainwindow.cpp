@@ -20,7 +20,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tableWidget_name->setColumnCount(2);
     ui->lineEdit_workSheetName->setText(QString("CMS"));
     ui->lineEdit_defaultLanguage->setText(QString("English"));
-    ui->lineEdit_defaulKeyName->setText(QString("Key"));
+    ui->lineEdit_defaultKeyName->setText(QString("Key"));
+    ui->lineEdit_defaultConfigPath->setText(QString("%1").arg(QCoreApplication::applicationDirPath()+"/"+"config_2.ini"));
     set_connect();
 }
 
@@ -47,7 +48,7 @@ void MainWindow::on_open_file(bool)
 
 void MainWindow::load_ini()
 {
-    QString ini_path = QCoreApplication::applicationDirPath()+"/"+"config_2.ini";
+    QString ini_path = ui->lineEdit_defaultConfigPath->text();
     QFile file(ini_path);
     if(file.open(QFile::ReadOnly|QIODevice::Unbuffered |QIODevice::Text))
     {
@@ -55,6 +56,7 @@ void MainWindow::load_ini()
         in.setCodec("UTF-8");
         QString line;
         ui->tableWidget_name->clear();
+        ui->tableWidget_name->setRowCount(0);
         while(!in.atEnd())
         {
             line = in.readLine();
@@ -68,7 +70,6 @@ void MainWindow::load_ini()
             ui->tableWidget_name->insertRow(count);
             ui->tableWidget_name->setItem(count,0,new QTableWidgetItem(str_0_noEmpty));
             ui->tableWidget_name->setItem(count,1,new QTableWidgetItem(list.at(1)));
-            ui->listWidget->addItem(list.at(1));
             ++count;
         }
     }
@@ -165,7 +166,7 @@ void MainWindow::create_lang_morefast()
         return;
     //获取英语所在行数
     int default_language_column = get_tar_sheet_column(worksheet,ui->lineEdit_defaultLanguage->text());
-    int default_key_column = get_tar_sheet_column(worksheet,ui->lineEdit_defaulKeyName->text());
+    int default_key_column = get_tar_sheet_column(worksheet,ui->lineEdit_defaultKeyName->text());
     for(int i=0;i<ui->tableWidget_name->rowCount();++i)
     {
 
@@ -186,10 +187,12 @@ void MainWindow::create_lang_morefast()
         if(tempFile.exists(file_name))
         {
             qDebug()<<QString("file %1 has already exist").arg(file_name);
+            bool b=tempFile.remove();
+            int id=1;
             //            continue;
         }
         tempFile.setFileName(file_name);
-        if(!tempFile.open(QIODevice::ReadWrite|QIODevice::Text))
+        if(!tempFile.open(QIODevice::ReadWrite|QIODevice::Text|QIODevice::Truncate))
             return;
         qint64 pos = tempFile.size();
         tempFile.seek(pos);
