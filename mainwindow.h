@@ -21,6 +21,7 @@ private slots:
     void on_open_file(bool);
     void load_ini();
     void create_lang();
+    void create_lang_morefast();
 
 private:
     bool CloseProcess(QString strExeName);

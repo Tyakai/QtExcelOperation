@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tableWidget_name->setColumnCount(2);
     ui->lineEdit_workSheetName->setText(QString("CMS"));
     ui->lineEdit_defaultLanguage->setText(QString("English"));
+    ui->lineEdit_defaulKeyName->setText(QString("Key"));
     set_connect();
 }
 
@@ -103,7 +104,7 @@ void MainWindow::create_lang()
         if(tempFile.exists(file_name))
         {
             qDebug()<<QString("file %1 has already exist").arg(file_name);
-            continue;
+            //            continue;
         }
         tempFile.setFileName(file_name);
         if(!tempFile.open(QIODevice::ReadWrite|QIODevice::Text))
@@ -112,6 +113,7 @@ void MainWindow::create_lang()
         tempFile.seek(pos);
         QAxObject *range ;
         QAxObject * usedrange = worksheet->querySubObject("UsedRange");//获取该sheet的使用范围对象
+
         QAxObject* rows = usedrange->querySubObject("Rows");
         int nRows=rows->property("Count").toInt();
         QString content_prefix;
@@ -130,7 +132,7 @@ void MainWindow::create_lang()
                 continue;
             content +=tempStr;
             content +="=";
-             tempStr.clear();
+            tempStr.clear();
             range = worksheet->querySubObject("Cells(int,int)",i,tar_column);
             tempStr= range->dynamicCall("Value2()").toString();
             if(tempStr.isEmpty())
@@ -145,11 +147,80 @@ void MainWindow::create_lang()
             content+="\n";
             if(content.isEmpty())
                 continue;
-//            qDebug()<<QString(content);
+            //            qDebug()<<QString(content);
             tempFile.write(content.toUtf8());
         }
         tempFile.close();
     }
+    workbook->dynamicCall("Close()");
+}
+
+void MainWindow::create_lang_morefast()
+{
+    QAxObject* workbook=read_excel(ui->lineEdit_filePath->text());
+    if(!workbook)
+        return;
+    QAxObject* worksheet = get_tar_work_sheet(workbook,ui->lineEdit_workSheetName->text());
+    if(!worksheet)
+        return;
+    //获取英语所在行数
+    int default_language_column = get_tar_sheet_column(worksheet,ui->lineEdit_defaultLanguage->text());
+    int default_key_column = get_tar_sheet_column(worksheet,ui->lineEdit_defaulKeyName->text());
+    for(int i=0;i<ui->tableWidget_name->rowCount();++i)
+    {
+
+        int tar_column = get_tar_sheet_column(worksheet,ui->tableWidget_name->item(i,0)->text());
+        qDebug()<<QString("语言： %1  , 列数： %2").arg(ui->tableWidget_name->item(i,0)->text()).arg(tar_column);
+        if(tar_column==-1||tar_column==0)
+            continue;
+        QString file_name = ui->tableWidget_name->item(i,1)->text();
+        QString dir_path = QCoreApplication::applicationDirPath();
+        QDir tempDir;
+        QString file_full_path = dir_path+"/"+file_name;
+        if(!tempDir.exists(dir_path))
+        {
+            tempDir.mkpath(file_full_path);
+        }
+        QFile tempFile;
+        tempDir.setCurrent(file_full_path);
+        if(tempFile.exists(file_name))
+        {
+            qDebug()<<QString("file %1 has already exist").arg(file_name);
+            //            continue;
+        }
+        tempFile.setFileName(file_name);
+        if(!tempFile.open(QIODevice::ReadWrite|QIODevice::Text))
+            return;
+        qint64 pos = tempFile.size();
+        tempFile.seek(pos);
+        QAxObject * usedrange = worksheet->querySubObject("UsedRange");//获取该sheet的使用范围对象
+        QVariant all_data = usedrange->property("Value");
+        QVariantList all_list = all_data.toList();
+        QString content_prefix;
+        content_prefix = QString("[Info]\nLanguage=%1\n[String]\n").arg( ui->tableWidget_name->item(i,0)->text());
+        tempFile.write(content_prefix.toUtf8());
+        qDebug()<<QString("all_list.count() : %1").arg(all_list.count());
+        //excel表格都是从1开始计数，第一行，第一列，但是数组列表都是从0开始，要注意
+        if(default_key_column<0||default_key_column==0)
+            default_key_column = 1;
+        for(int i=0;i<all_list.count();++i)
+        {
+            QVariantList all_list_2 = all_list.at(i).toList();
+            QString key_name = all_list_2.at(default_key_column-1).toString();
+            if(key_name.isEmpty())
+                continue;
+            QString target_content = all_list_2.at(tar_column-1).toString();
+            if(target_content.isEmpty())
+                target_content = all_list_2.at(default_language_column-1).toString();
+            if(target_content.isEmpty())
+                continue;
+            QString content = key_name+"="+target_content+"\n";
+            tempFile.write(content.toUtf8());
+
+        }
+        tempFile.close();
+    }
+    workbook->dynamicCall("Close()");
 }
 
 bool MainWindow::CloseProcess(QString strExeName)
@@ -246,32 +317,6 @@ QAxObject *MainWindow::read_excel(QString file_path)
     workbooks->dynamicCall("Open (const QString&)",file_path);//打开工作簿
     QAxObject *workbook = excel->querySubObject("ActiveWorkBook");//获取当前工作簿
     return workbook;
-    //    QAxObject *worksheets = workbook->querySubObject("WorkSheets");//获取所有的工作簿表
-    //    int worksheets_count = worksheets->property("Count").toInt();
-    //    QAxObject *worksheet = worksheets->querySubObject("Item(int)",1);//获取工作表集合的工作表1，即sheet1
-    //    if(!worksheet)
-    //    {
-    //        qDebug()<<QString("worksheet null!");
-    //        return;
-    //    }
-    //    QString sheet_name = worksheet->property("Name").toString();
-    //    QAxObject * usedrange = worksheet->querySubObject("UsedRange");//获取该sheet的使用范围对象
-    //    QAxObject* rows = usedrange->querySubObject("Rows");
-    //    int nRows=rows->property("Count").toInt();
-    //    QAxObject* ncolumns=usedrange->querySubObject("Columns");
-    //    int nColumns=ncolumns->property("Count").toInt();
-    //    QAxObject *range ;
-    //    for(int i=1;i<nRows;++i)
-    //    {
-    //        for(int j=1;j<nColumns;++j)
-    //        {
-    //        range = worksheet->querySubObject("Cells(int,int)",i,j);
-    //        QString strVal = range->dynamicCall("Value2()").toString();
-    //        if(strVal.isEmpty())
-    //            break;
-    //        qDebug()<<QString(strVal);
-    //        }
-    //    }
 }
 
 QAxObject *MainWindow::get_tar_work_sheet(QAxObject *workbook, QString worksheet_name)
@@ -378,5 +423,5 @@ void MainWindow::set_connect()
     connect(ui->pushButton_load,&QPushButton::clicked,
             this,&MainWindow::load_ini);
     connect(ui->pushButton_create,&QPushButton::clicked,
-            this,&MainWindow::create_lang);
+            this,&MainWindow::create_lang_morefast);
 }
