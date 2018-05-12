@@ -17,11 +17,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->tableWidget_name->setColumnCount(2);
+    ui->tableWidget_name->setColumnCount(3);
     ui->lineEdit_workSheetName->setText(QString("CMS"));
     ui->lineEdit_defaultLanguage->setText(QString("English"));
     ui->lineEdit_defaultKeyName->setText(QString("Key"));
     ui->lineEdit_defaultConfigPath->setText(QString("%1").arg(QCoreApplication::applicationDirPath()+"/"+"config_2.ini"));
+    ui->lineEdit_filePath->setText(QString("%1").arg("G:/cms/translate/翻译总表/VSU translation.xlsx"));
     set_connect();
 }
 
@@ -70,6 +71,7 @@ void MainWindow::load_ini()
             ui->tableWidget_name->insertRow(count);
             ui->tableWidget_name->setItem(count,0,new QTableWidgetItem(str_0_noEmpty));
             ui->tableWidget_name->setItem(count,1,new QTableWidgetItem(list.at(1)));
+            ui->tableWidget_name->setItem(count,2,new QTableWidgetItem(list.at(2)));
             ++count;
         }
     }
@@ -118,7 +120,7 @@ void MainWindow::create_lang()
         QAxObject* rows = usedrange->querySubObject("Rows");
         int nRows=rows->property("Count").toInt();
         QString content_prefix;
-        content_prefix = QString("[Info]\nLanguage=%1\n[String]\n").arg( ui->tableWidget_name->item(i,0)->text());
+        content_prefix = QString("[Info]\nLanguage=%1\n[String]\n").arg( ui->tableWidget_name->item(i,2)->text());
         tempFile.write(content_prefix.toUtf8());
         for(int i=2;i<=nRows;++i)
         {
@@ -200,7 +202,7 @@ void MainWindow::create_lang_morefast()
         QVariant all_data = usedrange->property("Value");
         QVariantList all_list = all_data.toList();
         QString content_prefix;
-        content_prefix = QString("[Info]\nLanguage=%1\n[String]\n").arg( ui->tableWidget_name->item(i,0)->text());
+        content_prefix = QString("[Info]\nLanguage=%1\n[String]\n").arg( ui->tableWidget_name->item(i,2)->text());
         tempFile.write(content_prefix.toUtf8());
         qDebug()<<QString("all_list.count() : %1").arg(all_list.count());
         //excel表格都是从1开始计数，第一行，第一列，但是数组列表都是从0开始，要注意
