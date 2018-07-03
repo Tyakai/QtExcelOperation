@@ -9,6 +9,8 @@
 #include "psapi.h"
 
 #include <processthreadsapi.h>
+#include <qstring.h>
+#include <QTextCodec>
 
 
 
@@ -21,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_workSheetName->setText(QString("CMS"));
     ui->lineEdit_defaultLanguage->setText(QString("English"));
     ui->lineEdit_defaultKeyName->setText(QString("Key"));
-    ui->lineEdit_defaultConfigPath->setText(QString("%1").arg(QCoreApplication::applicationDirPath()+"/"+"config_2.ini"));
+    ui->lineEdit_defaultConfigPath->setText(QString("%1").arg(QCoreApplication::applicationDirPath()+"/"+"config.ini"));
     ui->lineEdit_filePath->setText(QString("%1").arg("G:/cms/translate/翻译总表/VSU translation.xlsx"));
     set_connect();
 }
@@ -94,7 +96,7 @@ void MainWindow::create_lang()
         qDebug()<<QString("语言： %1  , 列数： %2").arg(ui->tableWidget_name->item(i,0)->text()).arg(tar_column);
         if(tar_column==-1)
             continue;
-        QString file_name = ui->tableWidget_name->item(i,1)->text();
+        QString file_name = ui->tableWidget_name->item(i,1)->text().trimmed();
         QString dir_path = QCoreApplication::applicationDirPath();
         QDir tempDir;
         QString file_full_path = dir_path+"/"+file_name;
@@ -176,7 +178,7 @@ void MainWindow::create_lang_morefast()
         qDebug()<<QString("语言： %1  , 列数： %2").arg(ui->tableWidget_name->item(i,0)->text()).arg(tar_column);
         if(tar_column==-1||tar_column==0)
             continue;
-        QString file_name = ui->tableWidget_name->item(i,1)->text();
+        QString file_name = ui->tableWidget_name->item(i,1)->text().trimmed();
         QString dir_path = QCoreApplication::applicationDirPath();
         QDir tempDir;
         QString file_full_path = dir_path+"/"+file_name;
@@ -189,9 +191,6 @@ void MainWindow::create_lang_morefast()
         if(tempFile.exists(file_name))
         {
             qDebug()<<QString("file %1 has already exist").arg(file_name);
-            bool b=tempFile.remove();
-            int id=1;
-            //            continue;
         }
         tempFile.setFileName(file_name);
         if(!tempFile.open(QIODevice::ReadWrite|QIODevice::Text|QIODevice::Truncate))
@@ -203,7 +202,7 @@ void MainWindow::create_lang_morefast()
         QVariantList all_list = all_data.toList();
         QString content_prefix;
         content_prefix = QString("[Info]\nLanguage=%1\n[String]\n").arg( ui->tableWidget_name->item(i,2)->text());
-        tempFile.write(content_prefix.toUtf8());
+        tempFile.write(content_prefix.toStdString().c_str());
         qDebug()<<QString("all_list.count() : %1").arg(all_list.count());
         //excel表格都是从1开始计数，第一行，第一列，但是数组列表都是从0开始，要注意
         if(default_key_column<0||default_key_column==0)
@@ -220,7 +219,7 @@ void MainWindow::create_lang_morefast()
             if(target_content.isEmpty())
                 continue;
             QString content = key_name+"="+target_content+"\n";
-            tempFile.write(content.toUtf8());
+            tempFile.write(content.toStdString().c_str());
 
         }
         tempFile.close();
@@ -365,6 +364,15 @@ int MainWindow::get_tar_sheet_column(QAxObject *worksheet, QString language_name
             return i;
     }
     return -1;
+}
+
+QString MainWindow::ToUnicode(const QString &cstr)
+{
+    QTextCodec* pCodec = QTextCodec::codecForName("gb2312");
+    if(!pCodec) return "";
+    QString qstr = pCodec->toUnicode(cstr.toStdString().c_str(), cstr.length());
+    return qstr;
+
 }
 
 void MainWindow::save_excel()

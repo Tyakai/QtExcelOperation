@@ -29,6 +29,7 @@ private:
     QAxObject* read_excel(QString file_path);
     QAxObject* get_tar_work_sheet(QAxObject* workbook,QString worksheet_name);
     int        get_tar_sheet_column(QAxObject* worksheet,QString language_name);
+    QString ToUnicode(const QString& cstr);
     int        default_language_column=-1;
     void save_excel();
     void set_connect();
